@@ -32,6 +32,7 @@ Thumbs.db
 *.sql
 *.sqlite
 *.raw
+*.txt
 
 # ignore vscode stuff
 .vscode/*

@@ -12,11 +12,30 @@ void write_matrix_data(double **matrix)
 
     for (int i = 0; i < N; i++)
     {
-        fwrite(matrix[i], sizeof(double), N, output);
+        for (int j = 0; j < N; j++)
+        {
+            fprintf(output, "%f ", matrix[i][j]);
+        }
+        fprintf(output, "\n");
     }
 
     fclose(output);
 }
+
+void read_matrix_from_file(double **matrix, const char *file_name)
+{
+    FILE *data;
+    data = fopen(file_name, "r");
+
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            fscanf(data, "%lf ", &matrix[i][j]);
+        }
+    }
+}
+
 // Función para copiar valores de un array a otro
 void copy_vector_values(double vec_a[], double vec_b[])
 {
@@ -27,7 +46,8 @@ void copy_vector_values(double vec_a[], double vec_b[])
 }
 
 // Convierte un valor con signo a absoluto mediante un operador ternario
-double absolute(double n) {
+double absolute(double n)
+{
     return n > 0 ? n : -n;
 }
 
@@ -61,13 +81,18 @@ void divide(double vec[], double max)
 void init_matrix(double ***M_ptr)
 {
     // Se declara y reserva memoria para la matriz
-    double **matrix = (double**)malloc(sizeof(double *) * N);
+    double **matrix = (double **)malloc(sizeof(double *) * N);
 
     for (int i = 0; i < N; ++i)
     {
         matrix[i] = (double *)malloc(sizeof(double) * N);
     }
 
+    *M_ptr = matrix;
+}
+
+void fill_matrix(double **matrix)
+{
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
@@ -89,8 +114,6 @@ void init_matrix(double ***M_ptr)
             }
         }
     }
-
-    *M_ptr = matrix;
 }
 
 // Inicialización de un vector mediante punteros, en este caso, el vector unidad
@@ -105,7 +128,7 @@ void init_unity_vector(double *x0_ptr[])
 }
 
 // Función para iniciar el sistema iterativo
-void init_system(double **M, double x0[], int m)
+void init_system(double **M, double x0[], int m, FILE *result)
 {
 
     double vector_aux[N], sum;
@@ -116,7 +139,6 @@ void init_system(double **M, double x0[], int m)
         {
             for (int j = 0; j < N; j++)
             {
-                // Multiplico el valor de la matriz por la componente del vector
                 sum += M[i][j] * x0[j];
             }
             // Actualizo la componente del vector y limpio el valor de la suma, así en una nueva iteración no arrastro el valor de la componente antigua
@@ -129,6 +151,8 @@ void init_system(double **M, double x0[], int m)
             // Encuentra y devuelve el índice de la componente con un mayor valor absoluto dentro de un vector
             int position = find_max_absolute(vector_aux);
 
+            fprintf(result, "Iteracion: %d, valor max: %f, posicion: %d\n", k, vector_aux[position], position);
+
             // dividir los valores del vector por el máximo absoluto, respetando el signo original
             divide(vector_aux, vector_aux[position]);
         }
@@ -136,22 +160,29 @@ void init_system(double **M, double x0[], int m)
         // Copio los valores del vector resultante en el vector inicial para que afecte a las siguientes iteraciones
         copy_vector_values(vector_aux, x0);
     }
-
 }
 
 int main(int argc, char *argv[])
 {
     double **M;
-    double *x0; 
+    double *x0;
     int m = atoi(argv[1]);
-
-    init_matrix(&M);
+    FILE *result = fopen("informacion_sistema_iterativo.txt", "w");
 
     init_unity_vector(&x0);
+    init_matrix(&M);
 
-    init_system(M, x0, m);
+    if (argc < 3)
+    {
+        fill_matrix(M);
+        write_matrix_data(M);
+    }
+    else
+    {
+        printf("hola!");
+        read_matrix_from_file(M, argv[2]);
+    }
 
-    write_matrix_data(M);
-
+    init_system(M, x0, m, result);
     return 0;
 }

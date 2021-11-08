@@ -184,8 +184,7 @@ void sobel_filter(unsigned char **matrix, unsigned char **result, int width, int
             data[7] = matrix[i + 1][j];
             data[8] = matrix[i + 1][j + 1];
 
-            for (int k = 0; k < 9; k++)
-            {
+            for (int k = 0; k < 9; k++)            {
                 gx_sum += data[k] * Gx[k];
                 gy_sum += data[k] * Gy[k];
             }

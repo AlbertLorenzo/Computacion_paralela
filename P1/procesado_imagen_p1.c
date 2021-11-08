@@ -99,6 +99,54 @@ void padding(unsigned char **matrix, int width, int height)
     }
 }
 
+// Filtro de media
+void average_filter(unsigned char **matrix, unsigned char **result, int width, int height)
+{
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            result[i][j] = (matrix[i][j] +
+                            matrix[i][j + 1] +
+                            matrix[i][j + 2] +
+                            matrix[i + 1][j] +
+                            matrix[i + 1][j + 1] +
+                            matrix[i + 1][j + 2] +
+                            matrix[i + 2][j] +
+                            matrix[i + 2][j + 1] +
+                            matrix[i + 2][j + 2]) /
+                           9;
+        }
+    }
+}
+
+// Filtro para la mediana
+void median_filter(unsigned char **matrix, unsigned char **result, int width, int height)
+{
+    int data[9];
+
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            data[0] = matrix[i][j];
+            data[1] = matrix[i][j + 1];
+            data[2] = matrix[i][j + 2];
+            data[3] = matrix[i + 1][j];
+            data[4] = matrix[i + 1][j + 1];
+            data[5] = matrix[i + 1][j + 2];
+            data[6] = matrix[i + 2][j];
+            data[7] = matrix[i + 2][j + 1];
+            data[8] = matrix[i + 2][j + 2];
+
+            // Se ordena el vector con los 9 datos y se escoge el del medio para el bit procesado
+            bubble_sort(data, 9);
+
+            result[i][j] = data[4];
+        }
+    }
+}
+
 void sobel_filter(unsigned char **matrix, unsigned char *result, int width, int height)
 {
     int Gx[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1}, Gy[9] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
