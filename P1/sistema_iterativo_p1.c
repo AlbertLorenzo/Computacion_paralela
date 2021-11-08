@@ -4,6 +4,8 @@
 
 #define N 15000
 
+/*
+En caso de leer y escribir la matriz en formato .txt legible
 void write_matrix_data(double **matrix)
 {
     FILE *output;
@@ -34,7 +36,32 @@ void read_matrix_from_file(double **matrix, const char *file_name)
             fscanf(data, "%lf ", &matrix[i][j]);
         }
     }
+}*/
+
+void read_binary_data(double **matrix, const char *file_name) {
+    FILE *data;
+    data = fopen(file_name, "rb");
+
+    for (int i = 0; i < N; i++)
+    {
+        fread(matrix[i], sizeof(double), N, data);
+    }
 }
+
+void write_binary_data(double **matrix)
+{
+    FILE *output;
+
+    output = fopen("matrix.raw", "wb");
+
+    for (int i = 0; i < N; i++)
+    {
+        fwrite(matrix[i], sizeof(double), N, output);
+    }
+
+    fclose(output);
+}
+
 
 // Función para copiar valores de un array a otro
 void copy_vector_values(double vec_a[], double vec_b[])
@@ -175,11 +202,11 @@ int main(int argc, char *argv[])
     if (argc < 3)
     {
         fill_matrix(M);
-        write_matrix_data(M);
+        write_binary_data(M);
     }
     else
     {
-        read_matrix_from_file(M, argv[2]);
+        read_binary_data(M, argv[2]);
     }
 
     init_system(M, x0, m, result);
