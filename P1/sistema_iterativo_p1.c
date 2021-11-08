@@ -179,7 +179,6 @@ int main(int argc, char *argv[])
     }
     else
     {
-        printf("hola!");
         read_matrix_from_file(M, argv[2]);
     }
 

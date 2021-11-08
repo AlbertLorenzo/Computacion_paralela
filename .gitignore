@@ -50,6 +50,7 @@ Thumbs.db
 *.exe
 *.o
 *.so
+*.out
 
 # ignore packaged files
 *.7z
