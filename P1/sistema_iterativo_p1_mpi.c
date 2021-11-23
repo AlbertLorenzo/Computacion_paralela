@@ -123,7 +123,7 @@ void abs_max(void *in, void *inout, int *len, MPI_Datatype *type)
 int main(int argc, char *argv[])
 {
     // Número de iteraciones
-    int m = 5;
+    int m = atoi(argv[1]);
 
     // Fichero de entrada
     FILE *result = fopen("informacion_sistema_iterativo.txt", "w");
@@ -149,7 +149,6 @@ int main(int argc, char *argv[])
     double max_value;       // Contendrá el valor máximo de cada iteración
     double local_max_value; // Valor local máximo de cada proceso
     double **local_matrix;  // Sub matrices locales
-    double sum;
     double local_result[N]; // Producto vectorial resultante
     double u_vector[N];     // Vector unitario
 
@@ -165,7 +164,16 @@ int main(int argc, char *argv[])
     if (myrank == root)
     {
         global_matrix = allocate_matrix(N, N);
-        fill_matrix(global_matrix, N);
+
+        if (argc < 3)
+        {
+            fill_matrix(global_matrix, N);
+            write_binary_data(global_matrix);
+        }
+        else
+        {
+            read_binary_data(global_matrix, argv[2]);
+        }
     }
 
     batch = N / nprocess; // Se asume que el cociente de la división es un número entero positivo
@@ -192,6 +200,7 @@ int main(int argc, char *argv[])
     // Inicio del proceso iterativo
     for (int k = 0; k < m; k++)
     {
+        double sum = 0;
         for (int i = 0; i < batch; i++)
         {
             for (int j = 0; j < N; j++)
@@ -208,10 +217,11 @@ int main(int argc, char *argv[])
             double local_max_value = find_max_absolute(local_result, batch);
 
             MPI_Allreduce(&local_max_value, &max_value, 1, MPI_DOUBLE, calc_abs_max, MPI_COMM_WORLD);
-            if (myrank == 0) {
+            if (myrank == 0)
+            {
                 fprintf(result, "Iteracion: %d, valor max: %.10e\n", k, max_value);
-                printf("maxvalue: %.f\n", max_value);
-            } 
+                printf("maxvalue: %.10e\n", max_value);
+            }
             divide(local_result, max_value, batch);
         }
 
