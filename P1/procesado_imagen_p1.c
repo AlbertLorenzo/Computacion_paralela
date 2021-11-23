@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 
     read_binary_data(matrix, input_file, width, height);
 
-    //padding(matrix, width, height);
+    padding(matrix, width, height);
 
     sobel_filter(matrix, result, width, height);
 

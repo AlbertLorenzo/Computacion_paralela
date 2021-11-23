@@ -38,7 +38,8 @@ void read_matrix_from_file(double **matrix, const char *file_name)
     }
 }*/
 
-void read_binary_data(double **matrix, const char *file_name) {
+void read_binary_data(double **matrix, const char *file_name)
+{
     FILE *data;
     data = fopen(file_name, "rb");
 
@@ -61,7 +62,6 @@ void write_binary_data(double **matrix)
 
     fclose(output);
 }
-
 
 // Función para copiar valores de un array a otro
 void copy_vector_values(double vec_a[], double vec_b[])
@@ -178,14 +178,15 @@ void init_system(double **M, double x0[], int m, FILE *result)
             // Encuentra y devuelve el índice de la componente con un mayor valor absoluto dentro de un vector
             int position = find_max_absolute(vector_aux);
 
-            fprintf(result, "Iteracion: %d, valor max: %f, posicion: %d\n", k, vector_aux[position], position);
-
+            fprintf(result, "Iteracion: %d, valor max: %.10e, posicion: %d\n", k, vector_aux[position], position);
+            printf("maxvalue: %.f\n", vector_aux[position]);
             // dividir los valores del vector por el máximo absoluto, respetando el signo original
             divide(vector_aux, vector_aux[position]);
         }
 
         // Copio los valores del vector resultante en el vector inicial para que afecte a las siguientes iteraciones
         copy_vector_values(vector_aux, x0);
+        
     }
 }
 
