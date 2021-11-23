@@ -10,3 +10,4 @@ Prácticas:
     - Sistema iterativo
         - Cálculo matricial
 
+- Práctica 1 - Paralelizar práctica 0 mediante OpenMPI

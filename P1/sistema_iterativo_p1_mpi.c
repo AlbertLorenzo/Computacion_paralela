@@ -16,11 +16,11 @@ void read_binary_data(double **matrix, const char *file_name)
     }
 }
 
-void write_binary_data(double **matrix)
+void write_binary_data(double **matrix, const char *file_name)
 {
     FILE *output;
 
-    output = fopen("matrix.raw", "wb");
+    output = fopen(file_name, "wb");
 
     for (int i = 0; i < N; i++)
     {
@@ -37,7 +37,7 @@ double absolute(double n)
 }
 
 // Encuentra el mayor valor absoluto en un vector y devuelve el índice en el que se encuentra
-double find_max_absolute(double vec[], int size)
+double find_local_abs_max(double vec[], int size)
 {
     double max = absolute(vec[0]), current = 0;
     int position = 0;
@@ -112,7 +112,11 @@ void init_unity_vector(double *x0_ptr[], int size)
     *x0_ptr = vector_aux;
 }
 
-// Operación MPI para encontrar el máximo absoluto
+/*
+ * Operación MPI para encontrar el máximo absoluto
+ * Se envían dos direcciones de memoria de tipo void porque la función allreduce sólo admite punteros a void
+ * Se hace el casting de puntero a double y la desreferencia de los punteros para obtener el valor
+ */
 void abs_max(void *in, void *inout, int *len, MPI_Datatype *type)
 {
     double n = *(double *)in, r = *(double *)inout, m;
@@ -120,13 +124,14 @@ void abs_max(void *in, void *inout, int *len, MPI_Datatype *type)
     *(double *)inout = m;
 }
 
+// Los parámetros son: m, fichero de salida de texto, fichero binario que almacena la matriz
 int main(int argc, char *argv[])
 {
     // Número de iteraciones
     int m = atoi(argv[1]);
 
-    // Fichero de entrada
-    FILE *result = fopen("informacion_sistema_iterativo.txt", "w");
+    // Fichero de entrada y salida
+    FILE *output_text_file = fopen(argv[2], "w");
 
     // Estructuras de datos globales
     double **global_matrix;
@@ -136,7 +141,11 @@ int main(int argc, char *argv[])
     int myrank;
     int tag = 0;
     int root = 0;
-    double start, end;
+
+    // Parámetros para medir el tiempo
+    double global_start, global_end;
+    double local_start;
+    double execution_start;
 
     // Inicio MPI
     MPI_Status status;
@@ -158,25 +167,32 @@ int main(int argc, char *argv[])
     MPI_Type_commit(&row_type);
 
     // Operación personalizada para allreduce
-    MPI_Op calc_abs_max;
-    MPI_Op_create(abs_max, 1, &calc_abs_max);
+    MPI_Op MPI_abs_max;
+    MPI_Op_create(abs_max, 1, &MPI_abs_max);
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    global_start = MPI_Wtime();
+
+    // Se carga la matriz en el proceso 0
     if (myrank == root)
     {
         global_matrix = allocate_matrix(N, N);
 
-        if (argc < 3)
+        // Si no se envía el nombre de la matriz como parámetro, se rellena y guarda
+        if (argc < 4)
         {
             fill_matrix(global_matrix, N);
-            write_binary_data(global_matrix);
+            write_binary_data(global_matrix, "matrix.raw");
         }
         else
         {
-            read_binary_data(global_matrix, argv[2]);
+            read_binary_data(global_matrix, argv[3]);
         }
     }
 
-    batch = N / nprocess; // Se asume que el cociente de la división es un número entero positivo
+    local_start = MPI_Wtime();
+
+    batch = N / nprocess; // Se asume el número de filas correspondientes para cada proceso es un número entero positivo
 
     // Sub matrices locales
     local_matrix = allocate_matrix(N, batch);
@@ -191,12 +207,13 @@ int main(int argc, char *argv[])
         MPI_Scatter(NULL, batch, row_type, &local_matrix[0][0], batch, row_type, 0, MPI_COMM_WORLD);
     }
 
-    // Se inicializa el vector unitario
+    // Se inicializan los vectores unitarios de cada proceso
     for (int i = 0; i < N; i++)
     {
         u_vector[i] = 1;
     }
 
+    execution_start = MPI_Wtime();
     // Inicio del proceso iterativo
     for (int k = 0; k < m; k++)
     {
@@ -213,24 +230,45 @@ int main(int argc, char *argv[])
 
         if (k > 0)
         {
-            // Se almacena el máximo local junto al signo original del valor en un struct
-            double local_max_value = find_max_absolute(local_result, batch);
+            // Se almacena el valor máximo local de cada  producto vectorial local
+            double local_max_value = find_local_abs_max(local_result, batch);
 
-            MPI_Allreduce(&local_max_value, &max_value, 1, MPI_DOUBLE, calc_abs_max, MPI_COMM_WORLD);
+            // Mediante allreduce, encontramos el valor máximo entre los n posibles y se distribuyen a todos los procesos, equivale a un reduce + bcast
+            MPI_Allreduce(&local_max_value, &max_value, 1, MPI_DOUBLE, MPI_abs_max, MPI_COMM_WORLD);
+
+            // El proceso 0 guarda e imprime el valor máximo junto a la iteración
             if (myrank == 0)
             {
-                fprintf(result, "Iteracion: %d, valor max: %.10e\n", k, max_value);
+                fprintf(output_text_file, "Iteracion: %d, valor max: %.10e\n", k, max_value);
                 printf("maxvalue: %.10e\n", max_value);
             }
+
+            // Se divide cada matriz local por el valor máximo global devuelto por el reduce
             divide(local_result, max_value, batch);
         }
 
+        // Se recogen los nuevos valores computados de cada producto vectorial local en los vectores unitarios de cada proceso
         for (int i = 0; i < nprocess; i++)
         {
             MPI_Gather(&local_result[0], batch, MPI_DOUBLE, &u_vector[0], batch, MPI_DOUBLE, i, MPI_COMM_WORLD);
         }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    global_end = MPI_Wtime();
+
     MPI_Finalize();
+
+    // Se imprimen los datos en el fichero de salida
+    if (myrank == 0)
+    {
+        fprintf(output_text_file, "Numero de iteraciones: %d\nNumero de procesos: %d\n", m, nprocess);
+        fprintf(output_text_file, "Tiempo de global: %.2fs\n", global_end - global_start);
+        fprintf(output_text_file, "Tiempo de comunicaciones iniciales y ejecucion: %.2fs\n", global_end - local_start);
+        fprintf(output_text_file, "Tiempo de ejecucion: %.2fs\n", global_end - execution_start);
+    }
+
+    fclose(output_text_file);
+
     return 0;
 }
