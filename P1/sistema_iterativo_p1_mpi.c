@@ -101,17 +101,6 @@ void fill_matrix(double **matrix, int n)
     }
 }
 
-// Reserva e inicialización el vector unidad
-void init_unity_vector(double *x0_ptr[], int size)
-{
-    double *vector_aux = (double *)malloc(sizeof(double) * size);
-    for (int i = 0; i < size; i++)
-    {
-        vector_aux[i] = 1;
-    }
-    *x0_ptr = vector_aux;
-}
-
 /*
  * Operación MPI para encontrar el máximo absoluto
  * Se envían dos direcciones de memoria de tipo void porque la función allreduce sólo admite punteros a void
@@ -156,9 +145,9 @@ int main(int argc, char *argv[])
     // Parámetros para los procesos
     int batch;              // Filas por procesos
     double max_value;       // Contendrá el valor máximo de cada iteración
-    double local_max_value; // Valor local máximo de cada proceso
+    double local_max_value; // Valor local máximo de producto 
     double **local_matrix;  // Sub matrices locales
-    double local_result[N]; // Producto vectorial resultante
+    double local_result[N]; // Producto matriz-vector resultante
     double u_vector[N];     // Vector unitario
 
     // Tipo de dato para las filas de las matrices
@@ -230,7 +219,7 @@ int main(int argc, char *argv[])
 
         if (k > 0)
         {
-            // Se almacena el valor máximo local de cada  producto vectorial local
+            // Se almacena el valor máximo local de cada producto matriz-vectori local
             double local_max_value = find_local_abs_max(local_result, batch);
 
             // Mediante allreduce, encontramos el valor máximo entre los n posibles y se distribuyen a todos los procesos, equivale a un reduce + bcast
@@ -247,7 +236,7 @@ int main(int argc, char *argv[])
             divide(local_result, max_value, batch);
         }
 
-        // Se recogen los nuevos valores computados de cada producto vectorial local en los vectores unitarios de cada proceso
+        // Se distribuyen los nuevos valores computados de cada producto matriz-vector local en los vectores unitarios de cada proceso
         for (int i = 0; i < nprocess; i++)
         {
             MPI_Gather(&local_result[0], batch, MPI_DOUBLE, &u_vector[0], batch, MPI_DOUBLE, i, MPI_COMM_WORLD);
