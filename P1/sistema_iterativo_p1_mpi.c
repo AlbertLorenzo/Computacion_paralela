@@ -237,10 +237,7 @@ int main(int argc, char *argv[])
         }
 
         // Se distribuyen los nuevos valores computados de cada producto matriz-vector local en los vectores unitarios de cada proceso
-        for (int i = 0; i < nprocess; i++)
-        {
-            MPI_Gather(&local_result[0], batch, MPI_DOUBLE, &u_vector[0], batch, MPI_DOUBLE, i, MPI_COMM_WORLD);
-        }
+        MPI_Allgather(&local_result[0], batch, MPI_DOUBLE, &u_vector[0], batch, MPI_DOUBLE, MPI_COMM_WORLD);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
