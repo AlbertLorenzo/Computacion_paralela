@@ -73,16 +73,6 @@ int main(int argc, char *argv[])
                 MPI_Send(&data_matrix[j][0], global_width, MPI_INT, i, tag, MPI_COMM_WORLD);
             }
         }
-
-        printf("Myrank: %d\n", myrank);
-        for (int i = 0; i < global_height; i++)
-        {
-            for (int j = 0; j < global_width; j++)
-            {
-                printf("%d ", data_matrix[i][j]);
-            }
-            printf("\n");
-        }
     }
     else
     {
@@ -90,16 +80,6 @@ int main(int argc, char *argv[])
         for (int i = 0; i < size_to_send[myrank]; i++)
         {
             MPI_Recv(&data_matrix[i][0], global_width, MPI_INT, root, tag, MPI_COMM_WORLD, &status);
-        }
-
-        printf("Myrank: %d\n", myrank);
-        for (int i = 0; i < size_to_send[myrank]; i++)
-        {
-            for (int j = 0; j < global_width; j++)
-            {
-                printf("%d ", data_matrix[i][j]);
-            }
-            printf("\n");
         }
     }
 
