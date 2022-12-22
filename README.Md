@@ -11,3 +11,4 @@ Prácticas:
         - Cálculo matricial
 
 - Práctica 1 - Paralelizar práctica 0 mediante OpenMPI
+- Práctica 2 - Paralelizar práctica 0 mediante OpenMP
